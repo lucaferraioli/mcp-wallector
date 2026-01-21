@@ -37,7 +37,25 @@ class MySQLClient:
         cursor.close()
         conn.close()
         return results
-        
+    
+    def get_all_products(self) -> Optional[Dict[str, Any]]:
+        """
+        Get tutti i prodotti da Artworks.
+        JOIN con Artists/Categories per dati completi.
+        """
+        query = """
+        SELECT 
+            a.Sku, a.Name, a.PriceToWallector, a.ImageUrl, 
+            a.Height, a.Width, a.Depth,
+            art.Name as ArtistName,
+            c.Name as CategoryName
+        FROM Artworks a
+        LEFT JOIN Artists art ON a.ArtistId = art.Id
+        LEFT JOIN Categories c ON a.CategoryId = c.Id
+        """
+        results = self.execute_query(query, ())
+        return results if results else None
+    
     def get_product(self, sku: str) -> Optional[Dict[str, Any]]:
         """
         Get prodotto da Artworks per SKU.

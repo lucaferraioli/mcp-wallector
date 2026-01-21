@@ -1,6 +1,6 @@
 from fastmcp import FastMCP
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from ..config import config  # Da creare dopo
 from src.utils.mysql_client import db
 from src.auth import require_authentication, AuthError
@@ -13,20 +13,33 @@ class ListProductsInput(BaseModel):
 
 def register_products(mcp: FastMCP) -> None:
     print("🔧 Registrando tool PRODOTTI...")
+
     @mcp.tool()
-    async def listproducts(input: ListProductsInput) -> Dict[str, Any]:
-        products: list[Dict[str, Any]] = [
-            {"sku": "ART001", "artist": "Banksy"},
-            {"sku": "ART002", "artist": "Da Vinci"},
+    @require_authentication
+    async def get_all_products(limit: int = 20) -> List[Dict[str, Any]]:
+        """Lista tutti i prodotti artworks con artist/category. Widget catalogo."""
+        products = db.get_all_products()  # Lista da DB helper
+        if not products:
+            return []
+        
+        return [
+            {
+                "sku": p["Sku"],
+                "name": p["Name"],
+                "artist": p["ArtistName"],
+                "price": p["PriceToWallector"],
+                "image_url": p["ImageUrl"],
+                "structuredContent": {
+                    "type": "ui.widget",
+                    "contents": [
+                        {"type": "image", "source": p["ImageUrl"]},
+                        {"type": "text", "text": f"🖼️ {p['ArtistName']} - €{p['PriceToWallector']}"}
+
+                    ]
+                }
+            }
+            for p in products[:limit]  # Paginate
         ]
-        filtered = [
-            p for p in products
-            if not input.artist or input.artist.lower() in p["artist"].lower()
-        ]
-        return {
-            "items": filtered[input.offset: input.offset + input.limit],
-            "total": len(filtered),
-        }
 
     @mcp.tool()
     @require_authentication
