@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from ..config import config  # Da creare dopo
 from src.utils.mysql_client import db
+from src.auth import require_authentication, AuthError
 
 class ListProductsInput(BaseModel):
     artist: Optional[str] = None
@@ -28,8 +29,9 @@ def register_products(mcp: FastMCP) -> None:
         }
 
     @mcp.tool()
+    @require_authentication
     async def getproduct(sku: str) -> Dict[str, Any]:
-        """Dettaglio opera + widget."""
+        """Dettaglio opera + widget. Richiede autenticazione."""
         product = db.get_product(sku)  # ← Helper centralizzato!
         
         if not product:
